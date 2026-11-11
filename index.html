@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>《固体物理学》交互式 3D 教学仿真实验平台 | EP00223</title>
+  <meta name="description" content="基于 Kittel《固体物理导论》与深圳技术大学《固体物理学》(EP00223) 课程教学大纲构建的全章节交互式 3D 教学仿真实验平台，覆盖晶体结构、衍射与倒格子、晶体结合、晶格振动声子、热学性质、自由电子费米气与固体能带论。" />
+
+  <!-- KaTeX Stylesheet (with fallback) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+        onerror="this.onerror=null;this.href='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';" />
+
+  <!-- Platform Stylesheet -->
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- ==================== Top Brand & Action Header ==================== -->
+    <header class="top-header">
+      <div class="brand-group">
+        <div class="brand-logo" title="Solid State Physics 3D Lab">SSP</div>
+        <div class="brand-titles">
+          <h1>《固体物理学》交互式 3D 教学仿真实验平台</h1>
+          <div class="brand-subtitle">
+            <span class="badge-pill">课程代码 EP00223</span>
+            <span>基于 Kittel《固体物理导论》(第8版) 与教学大纲全章节覆盖 · 共 7 章 28 个交互实验</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn-utility accent" id="btnOpenSyllabus">
+          📋 课程大纲全景导览
+        </button>
+        <button type="button" class="btn-utility" id="btnOpenQuiz">
+          ✍️ 本章随堂检测
+        </button>
+        <button type="button" class="btn-utility" id="btnFullscreen" title="切换全屏实验视图">
+          ⛶ 全屏
+        </button>
+      </div>
+    </header>
+
+    <!-- ==================== Chapter-Organized Dropdown Menubar ==================== -->
+    <nav class="chapter-menubar" id="chapterMenubar" aria-label="按章节下拉选择教学实验案例">
+      <!-- Populated dynamically by main.js: 7 Chapter Dropdown Menus -->
+    </nav>
+
+    <!-- ==================== Main Split Interactive Workspace ==================== -->
+    <main class="workspace-grid">
+      <!-- Left / Primary 3D WebGL Viewport -->
+      <section class="viewport-stage" aria-label="三维物理仿真交互视窗">
+        <div id="webglContainer"></div>
+
+        <!-- Loading / Initializing Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+          <div class="spinner"></div>
+          <div id="loadingText" style="color:#cbd5e1;font-size:13px;">正在初始化 WebGL 三维物理仿真引擎…</div>
+        </div>
+
+        <!-- Top HUD: Active Chapter/Case Breadcrumb & Color Legend -->
+        <div class="stage-overlay-top">
+          <div class="active-case-banner">
+            <div class="banner-breadcrumb" id="bannerBreadcrumb">第1章 · 晶体的结构</div>
+            <div class="banner-title" id="bannerTitle">1.1 原子的周期性排列</div>
+            <div class="banner-caption" id="bannerCaption">加载中…</div>
+          </div>
+
+          <div class="stage-legend" id="stageLegend"></div>
+        </div>
+
+        <!-- Bottom HUD: Camera & Playback Controls + Mouse Guide -->
+        <div class="stage-overlay-bottom">
+          <div class="stage-controls-bar">
+            <button type="button" class="btn-stage" id="btnResetCam">🎯 重置视角</button>
+            <button type="button" class="btn-stage" id="btnAutoRotate">🔄 自动旋转</button>
+            <button type="button" class="btn-stage" id="btnPause">⏸ 暂停演化</button>
+            <button type="button" class="btn-stage active" id="btnToggleAxes">📐 参考坐标轴</button>
+          </div>
+
+          <div class="stage-hint">
+            🖱️ 左键拖拽三维旋转 · 滚轮缩放 · 右键/Shift平移
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Control, Live Telemetry, 2D Synchronized Plot & Syllabus Theory Sidebar -->
+      <aside class="control-sidebar" aria-label="实验控制与物理图像分析面板">
+        <!-- Cascading Chapter & Case Native Dropdown Selector -->
+        <div class="selector-card">
+          <div class="selector-header">
+            <span>📂 章节与实验案例下拉选择</span>
+            <div class="nav-step-btns">
+              <button type="button" class="btn-step" id="btnPrevCase" title="上一个实验案例">◀ 上一节</button>
+              <button type="button" class="btn-step" id="btnNextCase" title="下一个实验案例">下一节 ▶</button>
+            </div>
+          </div>
+          <div class="select-row">
+            <label for="chapterSelect">选择章节</label>
+            <select id="chapterSelect" class="native-select"></select>
+          </div>
+          <div class="select-row">
+            <label for="caseSelect">选择案例</label>
+            <select id="caseSelect" class="native-select"></select>
+          </div>
+        </div>
+
+        <!-- Interactive Physics Parameters -->
+        <div class="panel-card">
+          <div class="panel-title">
+            <span>🎛️ 交互实验参数调节</span>
+            <span class="tag">实时 3D 响应</span>
+          </div>
+          <div class="controls-stack" id="controlsContainer"></div>
+        </div>
+
+        <!-- Real-time Physical Quantities Readout -->
+        <div class="panel-card">
+          <div class="panel-title">
+            <span>📊 微观/宏观特征物理量监测</span>
+            <span class="tag">定量计算</span>
+          </div>
+          <div class="metrics-grid" id="metricsContainer"></div>
+        </div>
+
+        <!-- Synchronized 2D Scientific Plot -->
+        <div class="panel-card">
+          <div class="panel-title">
+            <span>📈 联动理论曲线与谱图分析</span>
+            <span class="tag">正倒空间/热统联动</span>
+          </div>
+          <div class="plot-wrapper">
+            <canvas id="plotCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Syllabus Knowledge, Formulas, Learning Objectives & Ideological Frontier -->
+        <div class="panel-card">
+          <div class="tabs-header">
+            <button type="button" class="tab-btn active" data-tab="theory">核心原理与公式</button>
+            <button type="button" class="tab-btn" data-tab="objectives">大纲学习目标</button>
+            <button type="button" class="tab-btn" data-tab="frontier">前沿与思政融入</button>
+          </div>
+          <div class="tab-body" id="theoryBody"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- ==================== Modal 1: Full Course Syllabus Overview ==================== -->
+  <div class="modal-backdrop" id="syllabusModal" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2>📘《固体物理学》(EP00223) 课程教学大纲与 3D 仿真实验映射总览</h2>
+        <button type="button" class="modal-close" data-close-modal aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-content" id="syllabusModalBody"></div>
+    </div>
+  </div>
+
+  <!-- ==================== Modal 2: Chapter In-Class Concept Quiz ==================== -->
+  <div class="modal-backdrop" id="quizModal" role="dialog" aria-modal="true">
+    <div class="modal-dialog" style="max-width:680px;">
+      <div class="modal-header">
+        <h2 id="quizModalTitle">✍️ 随堂概念检测</h2>
+        <button type="button" class="modal-close" data-close-modal aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-content" id="quizModalBody"></div>
+    </div>
+  </div>
+
+  <!-- ==================== Multi-CDN Resilient Loader & Application Scripts ==================== -->
+  <script>
+    (function () {
+      function loadWithFallback(urls, onDone, onFail) {
+        var idx = 0;
+        function next() {
+          if (idx >= urls.length) {
+            if (onFail) onFail();
+            return;
+          }
+          var s = document.createElement("script");
+          s.src = urls[idx++];
+          s.onload = onDone;
+          s.onerror = next;
+          document.head.appendChild(s);
+        }
+        next();
+      }
+
+      function loadLocalQueue(paths, onComplete) {
+        var i = 0;
+        function step() {
+          if (i >= paths.length) {
+            if (onComplete) onComplete();
+            return;
+          }
+          var s = document.createElement("script");
+          s.src = paths[i++];
+          s.onload = step;
+          s.onerror = function () {
+            console.error("Failed to load script:", s.src);
+            step();
+          };
+          document.body.appendChild(s);
+        }
+        step();
+      }
+
+      // 1. Async non-blocking KaTeX math rendering engine
+      loadWithFallback([
+        "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"
+      ], function () {
+        loadWithFallback([
+          "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js",
+          "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"
+        ], function () {
+          window.dispatchEvent(new Event("katex-ready"));
+        });
+      });
+
+      // 2. Three.js r128 + OrbitControls (with multi-CDN fallback + built-in fallback controller)
+      loadWithFallback([
+        "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+        "https://unpkg.com/three@0.128.0/build/three.min.js"
+      ], function () {
+        loadWithFallback([
+          "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js",
+          "https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"
+        ], startApp, startApp);
+      }, function () {
+        var txt = document.getElementById("loadingText");
+        if (txt) txt.textContent = "无法连接 CDN 加载 Three.js，请检查网络连接后刷新页面。";
+      });
+
+      function startApp() {
+        loadLocalQueue([
+          "./js/core/app-data.js",
+          "./js/core/plot-helper.js",
+          "./js/core/scene-manager.js",
+          "./js/chapters/ch1-structure.js",
+          "./js/chapters/ch2-diffraction.js",
+          "./js/chapters/ch3-binding.js",
+          "./js/chapters/ch4-vibrations.js",
+          "./js/chapters/ch5-thermal.js",
+          "./js/chapters/ch6-free-electron.js",
+          "./js/chapters/ch7-bands.js",
+          "./js/main.js"
+        ]);
+      }
+    })();
+  </script>
+</body>
+</html>
